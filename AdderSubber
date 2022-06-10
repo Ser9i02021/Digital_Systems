@@ -1,0 +1,52 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
+
+
+entity somador_subtrator is
+generic(N: positive := 8;
+			isAdder: boolean := true;
+			isSubber: boolean := true;
+			generateCout: boolean := true;
+			generateOvf: boolean := true);
+port(a, b: in std_logic_vector(N - 1 downto 0);
+		op: in std_logic;
+		result: out std_logic_vector(N - 1 downto 0);
+		ovf, cout: out std_logic);
+end entity;
+
+
+architecture bhv of somador_subtrator is
+	component fulladder is
+		port(cin, X, Y: in std_logic;
+				sum, cout: out std_logic);
+	end component;
+	
+	signal carry: std_logic_vector(N downto 0);
+	signal operand_b: std_logic_vector(N - 1 downto 0);
+	
+begin
+	gera: for i in result'range generate
+				SomadorCompleto: SC port map(a(i), operand_b(i), carry(i), result(i), carry(i + 1));
+			end generate;
+			
+	generateAdder: if isAdder and not isSubber generate
+							carry(0) <= '0';
+							operand_b <= b;
+						end generate;
+	generateSubber: if not isAdder and isSubber generate
+							carry(0) <= '1';
+							operand_b <= not b;
+						end generate;
+	generateBoth: if isAdder and isSubber generate
+							carry(0) <= op;
+							operand_b <= b when op <= '0' else
+											 not b;
+						end generate;
+	generateCarryOut: if generateCout generate
+								cout <= carry(N);
+							end generate;
+	generateOverflow: if generateOvf generate
+								ovf <= carry(N) xor carry(N - 1);
+							end generate;
+end architecture;
