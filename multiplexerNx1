@@ -1,0 +1,20 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.math_real.all;
+
+entity multiplexerNx1 is
+	generic(	width: positive;
+			N: positive ); -- N = numInputs
+	port(	allInputs: in std_logic_vector(N*width-1 downto 0);
+			sel: in std_logic_vector(integer(ceil(log2(real(N))))-1 downto 0);
+			output: out std_logic_vector(width-1 downto 0) );
+end entity;
+
+use ieee.numeric_std.all;
+
+architecture behav0 of multiplexerNx1 is
+	signal intSel: integer;
+begin
+	intSel <= to_integer(unsigned(sel));
+	output <= allInputs((intSel+1)*width-1 downto intSel*width);
+end;
