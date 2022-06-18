@@ -1,7 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity registrador is
+entity register is
 generic(N: positive := 8);
 port(clk, load, reset: in std_logic;
 		input: in std_logic_vector(N - 1 downto 0);
@@ -9,17 +9,23 @@ port(clk, load, reset: in std_logic;
 		);
 end entity;
 
-architecture bhv of registrador is
+architecture bhv of register is
+subtype state is std_logic_vector(N - 1 downto 0);
+signal currentState, nextState: state;
 constant zero: std_logic_vector(N - 1 downto 0) := (others => '0');
 begin
-	process(clk, reset, load)
+	--Next state logic
+	nextState <= input when load = '1' else
+										currentState;
+	--Memory element
+	process(clk, reset)
 	begin
 		if reset = '1' then
-			output <= zero;
+			currentState <= zero;
 		elsif rising_edge(clk) then
-			if load = '1' then
-				output <= input;
-			end if;
+			currentState <= nextState;
 		end if;
 	end process;
+	--Ouput logic;
+	output <= currentState;
 end architecture;
