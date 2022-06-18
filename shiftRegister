@@ -1,0 +1,55 @@
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity shiftRegister is
+generic(N: positive := 8;
+			toLeft: boolean := true;
+			toRight: boolean := true);
+port(--Control
+		clk, reset, load, enable: in std_logic;
+		op: in std_logic;
+		--Data
+		input_from_Left, input_from_Right: in std_logic;
+		output_to_Left, output_to_Right: out std_logic;
+		input: in std_logic_vector(N - 1 downto 0);
+		output: out std_logic_vector(N - 1 downto 0)
+		);
+end entity;
+
+architecture bhv of shiftRegister is
+subtype state is std_logic_vector(N + 1 downto 0);
+signal currentState, nextState: state;
+--Auxiliar signal
+signal tempNextState: state;
+
+constant zero: std_logic_vector(N - 1 downto 0) := (others => '0');
+begin
+	--Next state logic
+	nextState <= '0' & input & '0' when load = '1' else
+						currentState when enable = '0' else
+						tempNextState;
+	assert toLeft or toRight report "Shift register should shift to at least one side" severity error;
+	shiftLeft: if toLeft and not toRight generate
+						tempNextState <= currentState(N downto 1) & input_from_Right & currentState(0);
+					end generate;
+	shiftRight: if not toLeft and toRight generate
+						tempNextState <= currentState(N + 1) & input_from_Left & currentState(N downto 1);
+					end generate;
+	shiftBoth: if toLeft and toRight generate
+						tempNextState <= currentState(N downto 1) & input_from_Right & currentState(0) when op = '0' else
+												currentState(N + 1) & input_from_Left & currentState(N downto 1);
+					end generate;
+	--Memory element
+	process(clk, reset)
+	begin
+		if reset = '1' then
+			currentState <= '0' & zero & '0';
+		elsif rising_edge(clk) then
+			currentState <= nextState;
+		end if;
+	end process;
+	--Output logic
+	output <= currentState(N downto 1);
+	output_to_Left <= currentState(N + 1);
+	output_to_Right <= currentState(0);
+end architecture;
