@@ -1,0 +1,59 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity binaryCounter is
+generic(N: positive := 8;
+			generateENB: boolean := true;
+			generateINC: boolean := true;
+			resetValue: integer := 0
+			);
+port(clk, reset, load, enb, inc: in std_logic;
+		input: in std_logic_vector(N - 1 downto 0);
+		output: out std_logic_vector(N - 1 downto 0)
+		);
+end entity;
+
+architecture bhv of binaryCounter is
+subtype State is unsigned(N - 1 downto 0);
+signal nextState, currentState: State;
+--auxiliar constant
+signal tempOperand: integer;
+begin
+	--Next state logic
+	if0: if generateENB generate
+				if1: if generateINC generate
+							tempOperand <= 1 when inc = '1' else -1;
+							nextState <= unsigned(input) when load = '1' else
+												currentState when enb = '0' else
+												currentState + tempOperand;
+				end generate;
+				if2: if not generateINC generate
+							nextState <= unsigned(input) when load = '1' else
+												currentState when enb = '0' else
+												currentState + 1;
+				end generate;				
+	end generate;
+	if3: if not generateENB generate
+				if4: if generateINC generate
+							tempOperand <= 1 when inc = '1' else -1;
+							nextState <= unsigned(input) when load = '1' else
+												currentState + tempOperand;
+				end generate;
+				if5: if not generateINC generate
+							nextState <= unsigned(input) when load = '1' else
+												currentState + 1;
+				end generate;
+	end generate;
+	--Memory element
+	ME: process(clk, reset)
+	begin
+		if reset = '1' then
+			currentState <= to_unsigned(resetValue, currentState'length);
+		elsif rising_edge(clk) then
+			currentState <= nextState;
+		end if;
+	end process;
+	--Output logic
+	output <= std_logic_vector(currentState);
+end architecture;
