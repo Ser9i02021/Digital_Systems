@@ -1,0 +1,68 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity grayCounter is			
+	generic(	width: positive;
+				generateLoad: boolean;
+				generateEnb: boolean;
+				generateInc: boolean;
+				resetValue: integer := 0 );
+	port(	-- control
+		clock, reset: in std_logic;
+		load, enb, inc: in std_logic;
+		-- data
+		input: in std_logic_vector(width-1 downto 0);
+		output: out std_logic_vector(width-1 downto 0)	);
+end entity;
+
+architecture behav0 of grayCounter is
+subtype state is unsigned(width-1 downto 0);
+signal nextState, currentState: state;
+-- auxiliar signals
+signal tempBinInput, tempBinOutput: unsigned(width downto 0);
+signal tempInc, tempCount, tempEnb, tempLoad: state;
+begin
+	-- next-state logic
+	-- decode gray input to load in bin format
+	tempBinInput(width) <= '0';
+	decode: for i in width-1 downto 0 generate
+		tempBinInput(i) <= input(i) xor tempBinInput(i+1);
+	end generate;
+	-- next-state in bin format
+	ifInc: if generateInc generate
+		--tempInc <= to_unsigned(+1,nextState'length) when inc='1' else to_unsigned(-1,nextState'length);
+		tempInc <= (0=>'1', others=>'0') when inc='1' else (others=>'1');
+	end generate;
+	ifNotInc: if not generateInc generate
+		tempInc <= (0=>'1', others=>'0');
+	end generate;
+	tempCount <= currentState+tempInc;
+	ifEnb: if generateEnb generate
+		tempEnb <= tempCount when enb='1' else currentState;
+	end generate;
+	ifNotEnb: if not generateEnb generate
+		tempEnb <= tempCount;
+	end generate;
+	ifLoad: if generateLoad generate
+		tempLoad <= tempBininput(input'range) when load='1' else tempEnb;
+	end generate;
+	ifNotLoad: if not generateLoad generate
+		tempLoad <= tempEnb;
+	end generate;
+	nextState <= tempLoad;
+	-- memory element
+	process(clock, reset) is
+	begin
+		if reset='1' then
+			currentState <= (to_unsigned(resetValue, currentState'length));
+		elsif rising_edge(clock) then
+			currentState <= nextState;
+		end if;
+	end process;
+	-- output logic
+	tempBinOutput <= '0' & currentState;
+	encode: for i in output'range generate
+		output(i) <= tempBinOutput(i) xor tempBinOutput(i+1);
+	end generate;
+end architecture;
