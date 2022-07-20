@@ -1,0 +1,56 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+use ieee.math_real.all;
+
+entity sequencialadder is
+generic(N: positive := 8);
+port(clock: in std_logic;
+    a, b, c, d: in std_logic_vector(N - 1 downto 0);
+    sum: out std_logic_vector(N + 1 downto 0);
+    --status outputs
+    ovf: out std_logic
+);
+end entity;
+
+architecture behaviour of sequencialadder is
+
+component addersubtractor is
+    generic(width: positive);
+    port(a, b: in std_logic_vector(width - 1 downto 0);
+    cout, ovf: out std_logic;
+    s: out std_logic_vector(width - 1 downto 0)
+    );
+end component;
+
+component reg is
+    generic(width: positive);
+    port(clock: in std_logic;
+        i: in std_logic_vector(width - 1 downto 0);
+        o: out std_logic_vector(width - 1 downto 0)
+        );
+end component;
+
+signal oA_S1, oB_iS1, oC_iS2, oD_iS2, oS1, oS2: std_logic_vector(N - 1 downto 0);
+signal c1, c2, c3: std_logic;
+signal oS1_iS3, oS2_iS3: std_logic_vector(N downto 0);
+signal oS3_iregS: std_logic_vector(N + 1 downto 0);
+begin
+    regA: generic map(N), port map(clock, a, oA_iS1);
+    regB: generic map(N), port map(clock, b, oB_iS1);
+    regC: generic map(N), port map(clock, c, oC_iS2);
+    regD: generic map(N), port map(clock, d, oD_iS2);
+    
+    add1: generic map(N), port map(oA_iS1, oB_iS1, c1, ovf, oS1);
+    add2: generic map(N), port map(oC_iS2, oD_iS2, c2, ovf, oS2);
+    
+    oS1_iS3 <= c1 & oS1;
+    oS2_iS3 <= c2 & oS2;
+    
+    add3: generic map(N + 1), port map(oS1_iS3, oS2_iS3, c3, ovf, oS3);
+    
+    oS3_iregS <= c3 & oS3;
+    
+    regS: generic map(N + 2), port map(clock, oS3_iregS, sum);
+    
+end architecture;
